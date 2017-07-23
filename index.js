@@ -33,7 +33,7 @@ client.on('message', function (message) {
   if (message.channel.id === myChannel.id) {
     var text = message.content.toLocaleLowerCase();
     if (text.indexOf('feature') !== -1 && text.indexOf('request') !== -1) {
-      myChannel.send("Fuck you");
+      myChannel.send("https://github.com/rgarland/tejbot/pulls");
     }
     else if (text.startsWith('#today')) {
       checkColumns('day', new Date());
@@ -46,6 +46,9 @@ client.on('message', function (message) {
     }
     else if (text.startsWith("#log")) {
       checkColumns('log');
+    }
+    else if(text.startsWith("#github")){
+      myChannel.send("https://github.com/rgarland/tejbot");
     }
     else if (text.startsWith("#commands")) {
       myChannel.send("```"

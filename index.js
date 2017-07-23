@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 var GoogleSpreadsheet = require('google-spreadsheet');
 var async = require('async');
+var token = require('./token');
 var myChannel;
 
 var queryInterval = 10 * 60 * 1000;
@@ -11,6 +12,7 @@ var sheet;
 var lastCount = 0;
 var count = 0;
 var lazyCount = 0;
+var database = new Map();
 
 client.on('ready', () => {
   initLog();
@@ -28,31 +30,34 @@ client.on('ready', () => {
 });
 
 client.on('message', function (message) {
-  var text = message.content.toLocaleLowerCase();
-  if (text.indexOf('feature') !== -1 && text.indexOf('request') !== -1) {
-    myChannel.send("Fuck you");
+  if (message.channel.id === myChannel.id) {
+    var text = message.content.toLocaleLowerCase();
+    if (text.indexOf('feature') !== -1 && text.indexOf('request') !== -1) {
+      myChannel.send("Fuck you");
+    }
+    else if (text.startsWith('#today')) {
+      checkColumns('day', new Date());
+    }
+    else if (text.startsWith('#yesterday')) {
+      checkColumns('day', yesterday());
+    }
+    else if (text.startsWith('#doc')) {
+      myChannel.send("https://docs.google.com/spreadsheets/d/1he6sw3OHMArnJlZ40vrNk0YSx8gLTzyBd-6DaMExoNc");
+    }
+    else if (text.startsWith("#log")) {
+      checkColumns('log');
+    }
+    else if (text.startsWith("#commands")) {
+      myChannel.send("```"
+        + "Available Commands" + "\n"
+        + "#today" + "\n"
+        + "#yesterday" + "\n"
+        + "#doc" + "\n"
+        + "#log" + "\n"
+        + "```");
+    }
   }
-  else if (text.startsWith('#today')) {
-    checkColumns('day', new Date());
-  }
-  else if (text.startsWith('#yesterday')) {
-    checkColumns('day', yesterday());
-  }
-  else if (text.startsWith('#doc')) {
-    myChannel.send("https://docs.google.com/spreadsheets/d/1he6sw3OHMArnJlZ40vrNk0YSx8gLTzyBd-6DaMExoNc");
-  }
-  else if (text.startsWith("#log")) {
-    checkColumns('log');
-  }
-  else if (text.startsWith("#commands")){
-    myChannel.send("```" 
-    +"Available Commands"+ "\n" 
-    +"#today" + "\n" 
-    +"#yesterday"  + "\n" 
-    +"#doc"  + "\n" 
-    +"#log"  + "\n" 
-    +"```");
-  }
+
 });
 
 function initLog() {
@@ -120,25 +125,31 @@ function checkColumns(command, requestedDate, dateString) {
 
         var workBlocks = blocks.filter(block => block.value.indexOf('work-') !== -1);
 
-        if (command === 'log') {
-          logLines += ("On " + date.toDateString() + " Tej logged " + workBlocks.length * 0.5 + " hours of work\n");
-        } else if (command === 'day') {
-          //Requested Day
-          if (requestedDate.toDateString() === (date.toDateString())) {
-            //Today
-            if (requestedDate.toDateString() === (new Date()).toDateString()) {
-              myChannel.send("`Today Tej has logged " + workBlocks.length * 0.5 + " hours of work`");
-            }
-            //Yesterday
-            else if (requestedDate.toDateString() === (yesterday()).toDateString()) {
-              myChannel.send("`Yesterday Tej logged " + workBlocks.length * 0.5 + " hours of work`");
-            }
-          }
-        }
+        database.set(date.toDateString(), {
+          date,
+          workBlocks
+        });
       });
 
       if (command === 'log') {
-        myChannel.send("```" + logLines + "```")
+        database.forEach((value, key) => {
+          logLines += ("On " + key + " Tej logged " + value.workBlocks.length * 0.5 + " hours of work\n");
+        });
+
+        myChannel.send("```" + logLines + "```");
+      } else if (command === 'day') {
+        //Requested Day
+        var foundDate = database.get(requestedDate.toDateString());
+        if (foundDate) {
+          //Today
+          if (requestedDate.toDateString() === (new Date()).toDateString()) {
+            printWorkCategories(foundDate.workBlocks, "Today Tej has logged " + foundDate.workBlocks.length * 0.5 + " hours of work");
+          }
+          //Yesterday
+          else if (requestedDate.toDateString() === (yesterday()).toDateString()) {
+            printWorkCategories(foundDate.workBlocks, "Yesterday Tej logged " + foundDate.workBlocks.length * 0.5 + " hours of work");
+          }
+        }
       }
     });
   });
@@ -150,4 +161,29 @@ function yesterday() {
   return date;
 }
 
-client.login('MzM4NTUxMTE0MjU1MzAyNjU3.DFXD3w.nhNIU9V_9VXUNjAxwL41evuJ5cw');
+function printWorkCategories(workBlocks, headerLine) {
+  var tempMap = new Map();
+  workBlocks.forEach(block => {
+    var category = tempMap.get(block.value);
+    if (!category) {
+      category = {
+        count: 0
+      }
+    }
+    category.count++;
+    tempMap.set(block.value, category);
+  });
+
+  var printLines = "";
+  tempMap.forEach((value, key) => {
+    printLines += value.count * 0.5 + " hours on " + key.slice("work- ".length);
+  });
+
+  if(headerLine){
+    myChannel.send("```" + headerLine + "\n" + printLines + "```");
+  } else {
+    myChannel.send("```" + printLines + "```");
+  }
+}
+
+client.login(token.token);

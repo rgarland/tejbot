@@ -13,6 +13,7 @@ var sheet;
 var database = new Map();
 var today = {};
 var lastDatabase = new Map();
+var sentMessages = new Map();
 
 // tag Tej <@192841484939165696> 
 
@@ -34,7 +35,7 @@ client.on('message', function (message) {
   if (message.channel.id === myChannel.id) {
     var text = message.content.toLocaleLowerCase();
     if (text.indexOf('feature') !== -1 && text.indexOf('request') !== -1) {
-      myChannel.send("https://github.com/rgarland/tejbot/pulls");
+      send("https://github.com/rgarland/tejbot/pulls");
     }
     else if (text.startsWith('!today') || text.startsWith("!day 1")) {
       responder('day', new Date());
@@ -48,24 +49,34 @@ client.on('message', function (message) {
         responder('day', yesterday(selector - 1));
       }
       catch (ex) {
-        myChannel.send("Invalid day");
+        send("Invalid day");
       }
     }
     else if (text.startsWith('!doc')) {
-      myChannel.send("https://docs.google.com/spreadsheets/d/1he6sw3OHMArnJlZ40vrNk0YSx8gLTzyBd-6DaMExoNc");
+      send("https://docs.google.com/spreadsheets/d/1he6sw3OHMArnJlZ40vrNk0YSx8gLTzyBd-6DaMExoNc");
     }
     else if (text.startsWith("!log")) {
       responder('log');
     }
+    else if (text.startsWith("!delete")){
+      try {
+        var messageId = text.split(" ")[1];
+        sentMessages.get(messageId).delete();
+      }
+      catch (ex) {
+        send("Invalid messageId");
+      }
+    }
     else if (text.startsWith("!github")) {
-      myChannel.send("https://github.com/rgarland/tejbot");
+      send("https://github.com/rgarland/tejbot");
     }
     else if (text.startsWith("!commands")) {
-      myChannel.send("```"
+      send("```"
         + "Available Commands" + "\n"
         + "!today" + "\n"
         + "!yesterday" + "\n"
         + "!day {index from log}" + "\n"
+        + "!delete {messageId}" + "\n"
         + "!doc" + "\n"
         + "!log" + "\n"
         + "```");
@@ -109,7 +120,7 @@ function responder(command, requestedDate, dateString) {
           }
         });
 
-        myChannel.send("```Log Response:\n" + logLines + "```");
+        send("```Log Response:\n" + logLines + "```");
       } else if (command === 'day') {
         //Requested Day
         var foundDate = database.get(requestedDate.toDateString());
@@ -162,15 +173,15 @@ function printWorkCategories(workBlocks, headerLine) {
 
   if (headerLine) {
     if (printLines) {
-      myChannel.send("```" + headerLine + " \n" + printLines + "```");
+      send("```" + headerLine + " \n" + printLines + "```");
     } else {
-      myChannel.send("```" + headerLine + " \n" + "Nothing!```");
+      send("```" + headerLine + " \n" + "Nothing!```");
     }
   } else {
     if (printLines) {
-      myChannel.send("```" + printLines + "```");
+      send("```" + printLines + "```");
     } else {
-      myChannel.send("```Nothing!```");
+      send("```Nothing!```");
     }
   }
 }
@@ -204,7 +215,7 @@ function detectChanges() {
     var old = lastDatabase.get(key);
     if (old) {
       if (old.workBlocks.length != value.workBlocks.length) {
-        myChannel.send("Tej modified log for day: " + key);
+        send("Tej modified log for day: " + key);
         printWorkCategories(old.workBlocks, "Previously");
         printWorkCategories(value.workBlocks, "Now");
       }
@@ -222,10 +233,13 @@ function getHours(number, noPadding) {
 }
 
 function daysBetween(first, second) {
-  console.log(first)
-  console.log(second);
-  console.log("`````````````````````````````")
   return Math.ceil((second - first) / (1000 * 60 * 60 * 24));
+}
+
+function send(payload) {
+  myChannel.send(payload).then(message => {
+    sentMessages.set(message.id, message);
+  });
 }
 
 client.login(token.token);

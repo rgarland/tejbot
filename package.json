@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "dateformat": "^2.0.0",
     "discord.js": "^11.1.0",
     "google-spreadsheet": "^2.0.4"
   },

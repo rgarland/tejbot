@@ -222,7 +222,10 @@ function getHours(number, noPadding) {
 }
 
 function daysBetween(first, second) {
-  return Math.round((second - first) / (1000 * 60 * 60 * 24));
+  console.log(first)
+  console.log(second);
+  console.log("`````````````````````````````")
+  return Math.ceil((second - first) / (1000 * 60 * 60 * 24));
 }
 
 client.login(token.token);

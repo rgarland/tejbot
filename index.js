@@ -9,15 +9,15 @@ var queryInterval = 10 * 60 * 1000;
 var dayLength = 86400 * 1000;
 var doc = new GoogleSpreadsheet('1he6sw3OHMArnJlZ40vrNk0YSx8gLTzyBd-6DaMExoNc');
 var sheet;
-var lastCount = 0;
-var count = 0;
-var lazyCount = 0;
 var database = new Map();
+var today = {};
+var lastDatabase = new Map();
+
+// tag Tej <@192841484939165696> 
 
 client.on('ready', () => {
-  initLog();
-  checkColumns();
-  setInterval(checkLog, queryInterval);
+  initDatabase();
+  setInterval(watcher, queryInterval);
 
   client.channels.forEach(channel => {
     // test 338550421251555338
@@ -36,18 +36,18 @@ client.on('message', function (message) {
       myChannel.send("https://github.com/rgarland/tejbot/pulls");
     }
     else if (text.startsWith('#today')) {
-      checkColumns('day', new Date());
+      responder('day', new Date());
     }
     else if (text.startsWith('#yesterday')) {
-      checkColumns('day', yesterday());
+      responder('day', yesterday());
     }
     else if (text.startsWith('#doc')) {
       myChannel.send("https://docs.google.com/spreadsheets/d/1he6sw3OHMArnJlZ40vrNk0YSx8gLTzyBd-6DaMExoNc");
     }
     else if (text.startsWith("#log")) {
-      checkColumns('log');
+      responder('log');
     }
-    else if(text.startsWith("#github")){
+    else if (text.startsWith("#github")) {
       myChannel.send("https://github.com/rgarland/tejbot");
     }
     else if (text.startsWith("#commands")) {
@@ -63,78 +63,44 @@ client.on('message', function (message) {
 
 });
 
-function initLog() {
-  checkLog(true)
-}
-
-function checkLog(initializing) {
+function initDatabase() {
   doc.getInfo((err, info) => {
     sheet = info.worksheets[0];
     sheet.getCells({
     }, function (err, cells) {
-      lastCount = count;
-      count = 0;
-      cells.forEach(function (cell) {
-        if (cell.value.indexOf('work-') !== -1) {
-          count++;
-        }
-      }, this);
-      if (initializing) {
-        console.log("Initialized with " + (count) * 0.5 + " hours of work.")
-        // myChannel.send("I'm watching you <@192841484939165696>");
-        // myChannel.send("Initialized with " + (count)*0.5 + " hours of work.");
-      } else {
-        if (count > lastCount) {
-          console.log("Tej logged " + (count - lastCount) * 0.5 + " new hours of work");
-          myChannel.send("Tej logged " + (count - lastCount) * 0.5 + " new hours of work");
-          lazyCount = 0;
-        } else if (count < lastCount) {
-          console.log("Tej removed " + (count - lastCount) * 0.5 + " hours of work");
-          myChannel.send("Tej removed " + (lastCount - count) * 0.5 + " hours of work");
-          lazyCount = 0;
-        } else {
-          console.log("No change");
-          lazyCount++;
-          if (lazyCount * queryInterval > dayLength) {
-            myChannel.send("<@192841484939165696> GET BACK TO WORK ITS BEEN A DAY");
-            lazyCount = 0;
+      updateDatabase(cells);
+    })
+  })
+}
+function watcher(initializing) {
+  doc.getInfo((err, info) => {
+    sheet = info.worksheets[0];
+    sheet.getCells({
+    }, function (err, cells) {
+      updateDatabase(cells);
+      database.forEach((value, key) => {
+        var old = lastDatabase.get(key);
+        if (old) {
+          if (old.workBlocks.length != value.workBlocks.length) {
+            myChannel.send("Tej modified log for day: " + key);
+            printWorkCategories(old.workBlocks, "Previously");
+            printWorkCategories(value.workBlocks, "Now");
           }
         }
-      }
-
+      })
     });
   });
 }
 
-function checkColumns(command, requestedDate, dateString) {
+function responder(command, requestedDate, dateString) {
   doc.getInfo((err, info) => {
     sheet = info.worksheets[0];
     sheet.getCells({
     }, function (err, cells) {
-
-      var dates = cells.filter(cell => {
-        return cell.row === 1;
-      });
-
-      var times = cells.filter(cell => {
-        return cell.col === 1;
-      });
-
-      var logLines = "";
-      dates.forEach(date => {
-        var blocks = cells.filter(cell => cell.col === date.col && cell.row > 1);
-        var dateFields = date.value.split('-');
-        date = new Date('20' + dateFields[0], dateFields[1] - 1, dateFields[2]);
-
-        var workBlocks = blocks.filter(block => block.value.indexOf('work-') !== -1);
-
-        database.set(date.toDateString(), {
-          date,
-          workBlocks
-        });
-      });
+      updateDatabase(cells);
 
       if (command === 'log') {
+        var logLines = "";
         database.forEach((value, key) => {
           logLines += ("On " + key + " Tej logged " + value.workBlocks.length * 0.5 + " hours of work\n");
         });
@@ -179,14 +145,46 @@ function printWorkCategories(workBlocks, headerLine) {
 
   var printLines = "";
   tempMap.forEach((value, key) => {
-    printLines += value.count * 0.5 + " hours on " + key.slice("work- ".length);
+    printLines += value.count * 0.5 + " hours on " + key.slice("work- ".length) + "\n";
   });
 
-  if(headerLine){
-    myChannel.send("```" + headerLine + "\n" + printLines + "```");
+  if (headerLine) {
+    if (printLines) {
+      myChannel.send("```" + headerLine + " \n" + printLines + "```");
+    } else {
+      myChannel.send("```" + headerLine + " \n" + "Nothing!```");
+    }
   } else {
-    myChannel.send("```" + printLines + "```");
+    if (printLines) {
+      myChannel.send("```" + printLines + "```");
+    } else {
+      myChannel.send("```Nothing!```");
+    }
   }
+}
+
+function updateDatabase(cells) {
+  lastDatabase = new Map(database);
+  var dates = cells.filter(cell => {
+    return cell.row === 1;
+  });
+
+  var times = cells.filter(cell => {
+    return cell.col === 1;
+  });
+
+  dates.forEach(date => {
+    var blocks = cells.filter(cell => cell.col === date.col && cell.row > 1);
+    var dateFields = date.value.split('-');
+    date = new Date('20' + dateFields[0], dateFields[1] - 1, dateFields[2]);
+
+    var workBlocks = blocks.filter(block => block.value.indexOf('work-') !== -1);
+
+    database.set(date.toDateString(), {
+      date,
+      workBlocks
+    });
+  });
 }
 
 client.login(token.token);

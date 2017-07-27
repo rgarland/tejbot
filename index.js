@@ -98,6 +98,22 @@ client.on('message', function (message) {
     else if (text.startsWith("!count")) {
       send("Tej.toLower() count = " + toLowerCounter);
     }
+    else if (text.startsWith("!nickname")) {
+      try {
+        var name = text.slice(9, text.length).trim();
+        if (name.toLowerCase().indexOf('tej') !== -1) {
+          var oldName = message.guild.members.get(tejId).nickname;
+          message.guild.members.get(tejId).setNickname(name);
+          send("Change name from " + oldName + " to " + name);
+        } else {
+          send("Invalid name, must contain 'Tej'");
+        }
+      }
+      catch (ex) {
+        console.log(ex)
+        send("Invalid name, must contain 'Tej'");
+      }
+    }
     else if (text.startsWith("!github")) {
       send("https://github.com/rgarland/tejbot");
     }
@@ -122,11 +138,11 @@ function check(str) {
   var length = str.length;
   letterCount = 0;
   for (var i = 0; i < length; i++) {
-    if (str.match(/[a-z]/i)) {
+    if (str[i].match(/[a-z]/i)) {
       letterCount++;
     }
 
-    if (str[i].toUpperCase() === str[i] && str.match(/[a-z]/i)) {
+    if (str[i].toUpperCase() === str[i] && str[i].match(/[a-z]/i)) {
       count++;
     }
   }
@@ -287,7 +303,7 @@ function daysBetween(first, second) {
 
 function send(payload, dontSave) {
   myChannel.send(payload).then(message => {
-    if(!dontSave){
+    if (!dontSave) {
       sentMessages.set(message.id, message);
     }
   });

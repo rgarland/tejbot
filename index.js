@@ -25,7 +25,7 @@ client.on('ready', () => {
   initDatabase();
   setInterval(watcher, queryInterval);
   storage.getItem('toLowerCounter', (err, value) => {
-     toLowerCounter = value;
+    toLowerCounter = value;
   });
 
   client.channels.forEach(channel => {
@@ -44,8 +44,8 @@ client.on('message', function (message) {
   if (message.channel.id === myChannel.id) {
     var text = message.content.toLocaleLowerCase();
 
-    if(message.author.id === tejId){
-      if(message.content === message.content.toUpperCase()){
+    if (message.author.id === tejId) {
+      if (check(message.content)) {
         message.delete();
         toLowerCounter++;
         send("Tej.toLower() = \"" + message.content.toLowerCase() + "\"");
@@ -54,9 +54,8 @@ client.on('message', function (message) {
       }
     }
 
-    console.log(message.author.id)
-    if(message.author.id === rogarId){
-      if(text.startsWith("!resetcount")){
+    if (message.author.id === rogarId) {
+      if (text.startsWith("!resetcount")) {
         toLowerCounter = 0;
         storage.setItem('toLowerCounter', toLowerCounter);
         send("Tej.toLower() count reset to: " + toLowerCounter);
@@ -87,7 +86,7 @@ client.on('message', function (message) {
     else if (text.startsWith("!log")) {
       responder('log');
     }
-    else if (text.startsWith("!delete")){
+    else if (text.startsWith("!delete")) {
       try {
         var messageId = text.split(" ")[1];
         sentMessages.get(messageId).delete();
@@ -96,7 +95,7 @@ client.on('message', function (message) {
         send("Invalid messageId");
       }
     }
-    else if (text.startsWith("!count")){
+    else if (text.startsWith("!count")) {
       send("Tej.toLower() count = " + toLowerCounter);
     }
     else if (text.startsWith("!github")) {
@@ -109,6 +108,7 @@ client.on('message', function (message) {
         + "!yesterday" + "\n"
         + "!day {index from log}" + "\n"
         + "!delete {messageId}" + "\n"
+        + "!count {messageId}" + "\n"
         + "!doc" + "\n"
         + "!log" + "\n"
         + "```");
@@ -116,6 +116,23 @@ client.on('message', function (message) {
   }
 
 });
+
+function check(str) {
+  var count = 0;
+  var length = str.length;
+  letterCount = 0;
+  for (var i = 0; i < length; i++) {
+    if (str.match(/[a-z]/i)) {
+      letterCount++;
+    }
+
+    if (str[i].toUpperCase() === str[i] && str.match(/[a-z]/i)) {
+      count++;
+    }
+  }
+
+  return count / letterCount > 0.5;
+}
 
 function initDatabase() {
   doc.getInfo((err, info) => {

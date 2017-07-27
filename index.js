@@ -124,7 +124,7 @@ client.on('message', function (message) {
         + "!yesterday" + "\n"
         + "!day {index from log}" + "\n"
         + "!delete {messageId}" + "\n"
-        + "!count {messageId}" + "\n"
+        + "!count" + "\n"
         + "!doc" + "\n"
         + "!log" + "\n"
         + "```");

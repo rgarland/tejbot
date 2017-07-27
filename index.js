@@ -48,7 +48,7 @@ client.on('message', function (message) {
       if (check(message.content)) {
         message.delete();
         toLowerCounter++;
-        send("Tej.toLower() = \"" + message.content.toLowerCase() + "\"");
+        send("Tej.toLower() = \"" + message.content.toLowerCase() + "\"", true);
         console.log("toLower Count: " + toLowerCounter);
         storage.setItem('toLowerCounter', toLowerCounter);
       }
@@ -285,9 +285,11 @@ function daysBetween(first, second) {
   return Math.ceil((second - first) / (1000 * 60 * 60 * 24));
 }
 
-function send(payload) {
+function send(payload, dontSave) {
   myChannel.send(payload).then(message => {
-    sentMessages.set(message.id, message);
+    if(!dontSave){
+      sentMessages.set(message.id, message);
+    }
   });
 }
 

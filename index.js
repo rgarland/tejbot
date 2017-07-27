@@ -4,6 +4,8 @@ var GoogleSpreadsheet = require('google-spreadsheet');
 var dateFormat = require('dateformat');
 var async = require('async');
 var token = require('./token');
+var storage = require('node-persist');
+
 var myChannel;
 
 var queryInterval = 10 * 60 * 1000;
@@ -14,26 +16,53 @@ var database = new Map();
 var today = {};
 var lastDatabase = new Map();
 var sentMessages = new Map();
+var toLowerCounter = 0;
 
-// tag Tej <@192841484939165696> 
+const tejId = '192841484939165696';// '192841484939165696';
+const rogarId = '122070682149322752';
 
 client.on('ready', () => {
   initDatabase();
   setInterval(watcher, queryInterval);
+  storage.getItem('toLowerCounter', (err, value) => {
+     toLowerCounter = value;
+  });
 
   client.channels.forEach(channel => {
     // test 338550421251555338
     // thuglife 207234209339801601
-    if (channel.id === '207234209339801601') {
+    if (channel.id === '338550421251555338') {
       myChannel = channel;
     }
 
   });
 });
 
+storage.initSync();
+
 client.on('message', function (message) {
   if (message.channel.id === myChannel.id) {
     var text = message.content.toLocaleLowerCase();
+
+    if(message.author.id === tejId){
+      if(message.content === message.content.toUpperCase()){
+        message.delete();
+        toLowerCounter++;
+        send("Tej.toLower() = \"" + message.content.toLowerCase() + "\"");
+        console.log("toLower Count: " + toLowerCounter);
+        storage.setItem('toLowerCounter', toLowerCounter);
+      }
+    }
+
+    console.log(message.author.id)
+    if(message.author.id === rogarId){
+      if(text.startsWith("!resetcount")){
+        toLowerCounter = 0;
+        storage.setItem('toLowerCounter', toLowerCounter);
+        send("Tej.toLower() count reset to: " + toLowerCounter);
+      }
+    }
+
     if (text.indexOf('feature') !== -1 && text.indexOf('request') !== -1) {
       send("https://github.com/rgarland/tejbot/pulls");
     }
@@ -67,10 +96,13 @@ client.on('message', function (message) {
         send("Invalid messageId");
       }
     }
+    else if (text.startsWith("!count")){
+      send("Tej.toLower() count = " + toLowerCounter);
+    }
     else if (text.startsWith("!github")) {
       send("https://github.com/rgarland/tejbot");
     }
-    else if (text.startsWith("!commands")) {
+    else if (text.startsWith("!commands") || text.startsWith("!help")) {
       send("```"
         + "Available Commands" + "\n"
         + "!today" + "\n"

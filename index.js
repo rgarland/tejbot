@@ -31,7 +31,7 @@ client.on('ready', () => {
   client.channels.forEach(channel => {
     // test 338550421251555338
     // thuglife 207234209339801601
-    if (channel.id === '338550421251555338') {
+    if (channel.id === '207234209339801601') {
       myChannel = channel;
     }
 

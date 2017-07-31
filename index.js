@@ -251,6 +251,57 @@ function printWorkCategories(workBlocks, headerLine) {
   }
 }
 
+function printDiff(before, after) {
+  var beforeMap = new Map();
+  before.forEach(block => {
+    var category = beforeMap.get(block.value);
+    if (!category) {
+      category = {
+        count: 0
+      }
+    }
+    category.count++;
+    beforeMap.set(block.value, category);
+  });
+
+  var afterMap = new Map();
+  after.forEach(block => {
+    var category = afterMap.get(block.value);
+    if (!category) {
+      category = {
+        count: 0
+      }
+    }
+    category.count++;
+    afterMap.set(block.value, category);
+  });
+
+  var printLines = "";
+  afterMap.forEach((afterCategory, key) => {
+    var beforeCategory = beforeMap.get(key);
+    var beforeCount = beforeCategory ? beforeCategory.count : 0;
+    var afterCount = afterCategory ? afterCategory.count : 0;
+    if (beforeCount !== afterCount) {
+      printLines += getHours(afterCount - beforeCount) + " on " + key.slice("work- ".length) + "\n";
+    }
+  });
+
+  beforeMap.forEach((beforeCategory, key) => {
+    var afterCategory = afterMap.get(key);
+    var beforeCount = beforeCategory ? beforeCategory.count : 0;
+    var afterCount = afterCategory ? afterCategory.count : 0;
+    if (beforeCount !== afterCount) {
+      printLines += getHours(afterCount - beforeCount) + " on " + key.slice("work- ".length) + "\n";
+    }
+  });
+
+  if (printLines) {
+    send("```" + printLines + "```");
+  } else {
+    send("```Nothing!```");
+  }
+}
+
 function updateDatabase(cells) {
   lastDatabase = new Map(database);
   var dates = cells.filter(cell => {
@@ -279,10 +330,15 @@ function detectChanges() {
   database.forEach((value, key) => {
     var old = lastDatabase.get(key);
     if (old) {
+      // for testing
+      // if (value.date.toDateString().indexOf('03') !== -1) {
+      //   old.workBlocks.push({ value: 'work- negative' })
+      //   old.workBlocks.push({ value: 'work- nagative' })
+      //   value.workBlocks.push({ value: 'work- positive' })
+      // }
       if (old.workBlocks.length != value.workBlocks.length) {
         send("Tej modified log for day: " + key);
-        printWorkCategories(old.workBlocks, "Previously");
-        printWorkCategories(value.workBlocks, "Now");
+        printDiff(old.workBlocks, value.workBlocks);
       }
     }
   })
@@ -303,11 +359,11 @@ function daysBetween(first, second) {
 
 function send(payload, dontSave) {
   myChannel.send(payload).then(message => {
-      sentMessages.set(message.id, message);
+    sentMessages.set(message.id, message);
   });
 }
 
-function reply(message, string){
+function reply(message, string) {
   message.channel.send(string);
 }
 

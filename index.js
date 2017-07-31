@@ -41,19 +41,19 @@ client.on('ready', () => {
 storage.initSync();
 
 client.on('message', function (message) {
+
+  if (message.author.id === tejId) {
+    if (check(message.content)) {
+      message.delete();
+      toLowerCounter++;
+      reply(message, "`Tej.toLower() = ` " + message.content.toLowerCase());
+      console.log("toLower Count: " + toLowerCounter + ", message: " + message.content);
+      storage.setItem('toLowerCounter', toLowerCounter);
+    }
+  }
+
   if (message.channel.id === myChannel.id) {
     var text = message.content.toLocaleLowerCase();
-
-    if (message.author.id === tejId) {
-      if (check(message.content)) {
-        message.delete();
-        toLowerCounter++;
-        send("Tej.toLower() = \"" + message.content.toLowerCase() + "\"", true);
-        console.log("toLower Count: " + toLowerCounter);
-        storage.setItem('toLowerCounter', toLowerCounter);
-      }
-    }
-
     if (message.author.id === rogarId) {
       if (text.startsWith("!resetcount")) {
         toLowerCounter = 0;
@@ -100,7 +100,7 @@ client.on('message', function (message) {
     }
     else if (text.startsWith("!nickname")) {
       try {
-        var name = text.slice(9, text.length).trim();
+        var name = message.content.slice(9, text.length).trim();
         if (name.toLowerCase().indexOf('tej') !== -1) {
           var oldName = message.guild.members.get(tejId).nickname;
           message.guild.members.get(tejId).setNickname(name);
@@ -303,10 +303,12 @@ function daysBetween(first, second) {
 
 function send(payload, dontSave) {
   myChannel.send(payload).then(message => {
-    if (!dontSave) {
       sentMessages.set(message.id, message);
-    }
   });
+}
+
+function reply(message, string){
+  message.channel.send(string);
 }
 
 client.login(token.token);
